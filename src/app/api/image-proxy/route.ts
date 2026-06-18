@@ -13,12 +13,18 @@ export async function GET(request: Request) {
   }
 
   try {
+    // Build request headers based on image source
+    const fetchHeaders: Record<string, string> = {
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    };
+    // Only send douban referrer for douban images, otherwise omit to avoid anti-leech blocks
+    if (imageUrl.includes('doubanio.com')) {
+      fetchHeaders['Referer'] = 'https://movie.douban.com/';
+    }
+
     const imageResponse = await fetch(imageUrl, {
-      headers: {
-        Referer: 'https://movie.douban.com/',
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-      },
+      headers: fetchHeaders,
     });
 
     if (!imageResponse.ok) {
