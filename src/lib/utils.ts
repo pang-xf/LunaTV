@@ -29,35 +29,49 @@ function getDoubanImageProxyConfig(): {
 }
 
 /**
- * 处理图片 URL，如果设置了图片代理则使用代理
+ * 处理图片 URL：
+ * 1. HTTP → HTTPS 升级（避免混合内容被浏览器拦截）
+ * 2. 豆瓣图片使用专用代理配置
+ * 3. 所有外部图片统一走 /api/image-proxy 代理，解决防盗链和 Workers 网络限制
  */
 export function processImageUrl(originalUrl: string): string {
   if (!originalUrl) return originalUrl;
 
-  // 仅处理豆瓣图片代理
-  if (!originalUrl.includes('doubanio.com')) {
-    return originalUrl;
+  // 已经是本站代理地址，直接返回
+  if (originalUrl.startsWith('/api/image-proxy')) return originalUrl;
+
+  // 豆瓣图片：使用专用代理配置
+  if (originalUrl.includes('doubanio.com')) {
+    const { proxyType, proxyUrl } = getDoubanImageProxyConfig();
+    switch (proxyType) {
+      case 'server':
+        return `/api/image-proxy?url=${encodeURIComponent(originalUrl)}`;
+      case 'cmliussss-cdn-tencent':
+        return originalUrl.replace(
+          /img\d+\.doubanio\.com/g,
+          'img.doubanio.cmliussss.net'
+        );
+      case 'cmliussss-cdn-ali':
+        return originalUrl.replace(
+          /img\d+\.doubanio\.com/g,
+          'img.doubanio.cmliussss.com'
+        );
+      case 'custom':
+        return `${proxyUrl}${encodeURIComponent(originalUrl)}`;
+      default:
+        return `/api/image-proxy?url=${encodeURIComponent(originalUrl)}`;
+    }
   }
 
-  const { proxyType, proxyUrl } = getDoubanImageProxyConfig();
-  switch (proxyType) {
-    case 'server':
-      return `/api/image-proxy?url=${encodeURIComponent(originalUrl)}`;
-    case 'cmliussss-cdn-tencent':
-      return originalUrl.replace(
-        /img\d+\.doubanio\.com/g,
-        'img.doubanio.cmliussss.net'
-      );
-    case 'cmliussss-cdn-ali':
-      return originalUrl.replace(
-        /img\d+\.doubanio\.com/g,
-        'img.doubanio.cmliussss.com'
-      );
-    case 'custom':
-      return `${proxyUrl}${encodeURIComponent(originalUrl)}`;
-    default:
-      return `/api/image-proxy?url=${encodeURIComponent(originalUrl)}`;
+  // 外部图片：统一走代理，避免混合内容 / 防盗链 / Workers 子请求限制
+  if (
+    originalUrl.startsWith('http://') ||
+    originalUrl.startsWith('https://')
+  ) {
+    return `/api/image-proxy?url=${encodeURIComponent(originalUrl)}`;
   }
+
+  return originalUrl;
 }
 
 /**
