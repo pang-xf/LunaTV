@@ -43,3 +43,21 @@ sitemap-*.xml
 # generated files
 src/lib/runtime.ts
 public/manifest.json
+# OpenNext
+.open-next
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+
+!.env.example
+
+# OpenNext build output
+.open-next/
+# pnpm workspaces
+pnpm-workspace.yaml
+# PWA generated files
+public/sw.js
+public/workbox-*.js
+public/_headers
